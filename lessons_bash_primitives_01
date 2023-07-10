@@ -1,0 +1,39 @@
+task 01 create
+
+#!/bin/bash
+# /home/puser/task1
+mkdir  task1
+cd task1/
+mkdir a1 -p
+mkdir a2
+mkdir a3
+mkdir b1
+mkdir b2
+mkdir b3
+mkdir cc
+
+# cat > /home/puser/task1/a1/a1f1.txt
+# echo 'This a1f1' > /home/puser/task1/a1/a1f1.txt
+printf "This a1f1" > /home/puser/task1/a1/a1f1.txt
+
+# cat > /home/puser/task1/a1/a1f2.txt
+printf "This a1f2" > /home/puser/task1/a1/a1f2.txt
+
+
+# cat > /home/puser/task1/a2/a2f1.txt
+# echo 'This a2f1' > /home/puser/task1/a2/a2f1.txt
+# cat > /home/puser/task1/a1/a2f2.txt
+# echo 'This a2f2' > /home/puser/task1/a2/a2f2.txt
+
+printf "This a2f1" > /home/puser/task1/a2/a2f1.txt
+printf "This a2f2" > /home/puser/task1/a2/a2f2.txt
+
+*************
+task 01 read 
+Есть несколько директорий a1 a2 a3 a4 b1 b2 b5 cc
+Необходимо посчитать кол-во файлов во всех директориях кроме сс
+И записать в файл count.file (кол-во файлов для проверки создайте сами)
+
+Решение
+find task1 -type f -not -wholename "*/cc/*" | wc -l > count.file 
+find task1 -type f | wc -l
