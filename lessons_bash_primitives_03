@@ -1,0 +1,48 @@
+3 Сделаете дерево каталогов ввида
+a1\11\1\
+a1\11\11\
+a2\22\2\
+a2\22\22\
+a2\22\222\
+b1\33\3\
+И. Разместите там в каждом файл с содержанием - 228.com 228.ru
+Напишите скрипт который везде заменит 228.com на 229.com
+
+2_2 размещение файла
+
+#!/bin/bash
+pa1="/home/puser/task2_2/a1/11/1"
+pa2="/home/puser/task2_2/a1/11/11"
+pa3="/home/puser/task2_2/a2/22/2"
+pa4="/home/puser/task2_2/a2/22/22"
+pa5="/home/puser/task2_2/a2/22/222"
+pa6="/home/puser/task2_2/b1/33/3"
+
+dir_array=($pa1 $pa2 $pa3 $pa4 $pa5 $pa6)
+file_name="/2_2.file"
+file_cont="228.com 228.ru"
+
+for dir in ${dir_array[@]}; do
+  # echo $dir
+  mkdir $dir -p
+  fullp=$dir$file_name
+  # echo $fullp
+  echo $file_cont
+# printf  $file_cont > $fullp
+  echo -e "$file_cont" > "$fullp"
+done
+
+
+2_2 замена 
+общая логика
+Пройтись по всем каталогам, открыть каждый файл по списку. 
+Взять оттуда строку "228.com 228.ru" 
+разделить строку по шаблону. Заменить первую часть. Записать обратно в файл. 
+
+#!/bin/bash
+dir_arr2=$(find /home/puser/task2_2/ -type f -name "2_2.file")
+# echo $dir_arr2
+for dir in ${dir_arr2[@]}; do
+  # echo "$dir"
+  sed -i "s/228.com/229.com/" "$dir"
+done
