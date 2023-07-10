@@ -1,0 +1,2 @@
+# small_examples_4colleagues_bashplusdocker
+small_examples_4colleagues_bashplusdocker
