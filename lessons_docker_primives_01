@@ -1,0 +1,86 @@
+#commands reminder
+docker images
+docker image rm
+docker container ls
+docker container rm
+docker container prune
+docker build -f (sourcefile) . -t (destination image):(tag)
+docker build -f Dockerfile14 . -t lesson1:v01
+docker run -it --entrypoint bash --name="(container name)" --cpus=".5" lesson1:v01
+docker run -v $(pwd)/nginx.conf:/opt/nginx/conf/nginx.conf -it --entrypoint bash --name="(container name)" --cpus=".5" -d -p 8081:80 lesson1:v01
+######## dockerfile start
+FROM debian:12
+RUN apt update && apt install -y vim procps nano wget curl iputils-ping
+RUN apt install -y gcc make
+RUN apt install -y libpcre3 libpcre3-dev
+RUN apt install -y zlib1g zlib1g-dev lua-zlib-dev
+# 1 LuaJIT
+RUN wget "https://github.com/openresty/luajit2/archive/refs/tags/v2.1-20230410.tar.gz" && tar zxvf v2.1-20230410.tar.gz
+RUN cd /luajit2-2.1-20230410 && make && make install PREFIX=/lj2_libs
+# 2 Download the latest version of the ngx_devel_kit
+RUN wget "https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.2.tar.gz" && tar zxvf v0.3.2.tar.gz
+# RUN cd /ngx_devel_kit-0.3.2 && make && make install
+# 3 Download the latest version of ngx_lua HERE
+RUN wget "https://github.com/openresty/lua-nginx-module/archive/refs/tags/v0.10.25.tar.gz" && tar zxvf v0.10.25.tar.gz
+# 4. Download the latest supported version of Nginx HERE (See Nginx Compatibility)
+RUN wget "https://nginx.org/download/nginx-1.19.3.tar.gz" && tar zxvf nginx-1.19.3.tar.gz
+# 5 Download the latest version of the lua-resty-core
+RUN wget "https://github.com/openresty/lua-resty-core/archive/refs/tags/v0.1.27.tar.gz" && tar zxvf v0.1.27.tar.gz
+#6 Download the latest version of the lua-resty-lrucache HERE
+RUN wget "https://github.com/openresty/lua-resty-lrucache/archive/refs/tags/v0.13.tar.gz" && tar zxvf v0.13.tar.gz
+
+#7
+# RUN export LUAJIT_LIB=/lj2_libs/lib
+# RUN export LUAJIT_INC=/lj2_libs/include/luajit-2.1
+ENV LUAJIT_LIB=/lj2_libs/lib
+ENV  LUAJIT_INC=/lj2_libs/include/luajit-2.1
+#8
+RUN cd /nginx-1.19.3 &&  ./configure --prefix=/opt/nginx --with-ld-opt="-Wl,-rpath,/lj2_libs/lib" \
+  --add-module=/ngx_devel_kit-0.3.2 --add-module=/lua-nginx-module-0.10.25
+RUN cd /nginx-1.19.3 && make && make install
+RUN cd /lua-resty-core-0.1.27 &&  make && make install PREFIX=/opt/nginx
+RUN cd /lua-resty-lrucache-0.13 && make install PREFIX=/opt/nginx
+cmd ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
+
+root@prom1:/home/puser/jun14# cat Dockerfile14-ngHW-v22
+FROM debian:12 as build
+# install all for nginx
+RUN apt update && apt install -y vim procps nano wget curl iputils-ping
+RUN apt install -y gcc make libpcre3 libpcre3-dev zlib1g zlib1g-dev lua-zlib-dev
+# 1 LuaJIT
+RUN wget "https://github.com/openresty/luajit2/archive/refs/tags/v2.1-20230410.tar.gz" && tar zxvf v2.1-20230410.tar.gz
+RUN cd /luajit2-2.1-20230410 && make && make install PREFIX=/lj2_libs
+# 2 Download the latest version of the ngx_devel_kit
+RUN wget "https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.2.tar.gz" && tar zxvf v0.3.2.tar.gz
+# 3 Download the latest version of ngx_lua HERE
+RUN wget "https://github.com/openresty/lua-nginx-module/archive/refs/tags/v0.10.25.tar.gz" && tar zxvf v0.10.25.tar.gz
+RUN cd ../lua-nginx-module-0.10.25 # lua-nginx-module-0.10.25
+# 4. Download the latest supported version of Nginx HERE (See Nginx Compatibility)
+RUN wget "https://nginx.org/download/nginx-1.19.3.tar.gz" && tar zxvf nginx-1.19.3.tar.gz
+# 5 Download the latest version of the lua-resty-core
+RUN wget "https://github.com/openresty/lua-resty-core/archive/refs/tags/v0.1.27.tar.gz" && tar zxvf v0.1.27.tar.gz
+#6 Download the latest version of the lua-resty-lrucache HERE
+RUN wget "https://github.com/openresty/lua-resty-lrucache/archive/refs/tags/v0.13.tar.gz" && tar zxvf v0.13.tar.gz
+ENV LUAJIT_LIB=/lj2_libs/lib
+ENV LUAJIT_INC=/lj2_libs/include/luajit-2.1
+RUN cd /nginx-1.19.3 && ./configure --prefix=/opt/nginx --with-ld-opt="-Wl,-rpath,/lj2_libs/lib" \
+  --add-module=/ngx_devel_kit-0.3.2 --add-module=/lua-nginx-module-0.10.25 && cd /nginx-1.19.3 && make && make install
+RUN cd /lua-resty-core-0.1.27 &&  make && make install PREFIX=/opt/nginx
+RUN cd /lua-resty-lrucache-0.13 && make install PREFIX=/opt/nginx
+
+
+# for part 2
+FROM debian:12
+# copy lua !
+WORKDIR /
+copy --from=build /opt/nginx/sbin/nginx /opt/nginx/sbin/
+copy --from=build /lj2_libs/ /lj2_libs/
+copy --from=build /lua-nginx-module-0.10.25/ /lua-nginx-module-0.10.25/
+copy --from=build /lib/x86_64-linux-gnu/libpcre.so.3 /lib/x86_64-linux-gnu/
+copy --from=build /opt/nginx/conf/ /opt/nginx/conf/
+copy --from=build /opt/nginx/lib/lua /opt/nginx/lib/lua
+ENV LUAJIT_LIB=/lj2_libs/lib
+ENV LUAJIT_INC=/lj2_libs/include/luajit-2.1
+RUN mkdir /opt/nginx/logs  && touch /opt/nginx/logs/error.log && chmod +x /opt/nginx/sbin/nginx
+cmd ["/opt/nginx/sbin/nginx", "-g", "daemon off;"]
+
