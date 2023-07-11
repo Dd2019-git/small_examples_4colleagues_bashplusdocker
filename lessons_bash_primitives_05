@@ -1,0 +1,119 @@
+Задача 5
+Есть лог nginx со строками вида
+195.77.230.188 - - [02/Mar/2018:16:05:50 +0000] "GET /some-url HTTP/1.1" 200 1793 0.009 "https://example.com" "Mozilla/5.0 (X11; Fedora; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36" [upstream: 127.0.0.1:8000 200] request_id=-
+лог делается nginx вот так:
+log_format mylog '$remote_addr - $remote_user [$time_local] '
+'"$request" $status $body_bytes_sent $request_time '
+'"$http_referer" "$http_user_agent" '
+'[upstream: $upstream_addr $upstream_status] '
+'request_id=$upstream_http_x_request_id';
+
+Нужно сделать:
+a) простой скрипт-однострочник на bash, который бы выводил ip, с которого пришло больше всего запросов
+b) Скрипт на bash, который бы вывел top-10 ip, на которые было отдано больше всего трафика ($body_bytes_sent в логе). Сортировать по убыванию трафика.
+
+
+Для теста сами раскопируйте логи
+
+5.1 генератор данных 
+Задача - сделать файл на 10.000 строк логов. 
+Отличаться будут для наглядности только третий октет. 
+Исходный адрес 1.2.(N).123 
+
+Генерация строки 
+task51_createlog.sh
+
+#!/bin/bash
+tdir="/home/puser/task5"
+mkdir $tdir
+address_arr=()
+address_p1=' - - [02/Mar/2018:16:05:50 +0000] "GET /some-url HTTP/1.1" 200 '
+
+address_p3=' 0.009 "https://example.com" '
+
+address_p4='"Mozilla/5.0 (X11; Fedora; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36" '
+address_p5=" [upstream: 127.0.0.1:8000 200] request_id=-"
+address_arr=()
+for i in {1..10000}
+do
+  echo "1.2."$(( $RANDOM % 254 + 1 )).123
+  address_p0="1.2."$(( $RANDOM % 254 + 1 )).123
+  address_p2=$(( $RANDOM % 2000 + 1 ))
+echo $address_p0$address_p1$address_p2$address_p3$address_p4$address_p5  >> $tdir/task5.log
+
+done
+
+5.2 простой скрипт-однострочник на bash, который бы выводил ip, с которого пришло больше всего запросов
+task52_onestring.sh
+Логика у меня что-то страдает. В несколько строк понятно,для каждого ip посчитать число вхождений и отсортировать. 
+Но в однострочник такая логика у меня не вписывается. 
+Логика. Сортируем массив. Считаем число вхождений элемента 1. Ставим как 1. дальше с следующим элементом, считаем - повторяем. 
+То есть надо массив уников и по нему уже идти. 
+
+You even can have uniq provide a tally of how many times it has found each entry with the -c option: 
+sort namelist1.txt namelist2.txt | uniq -c
+https://www.linuxjournal.com/content/back-basics-sort-and-uniq 
+
+sort task5/task5.log | uniq -c
+
+а чего не вписывается то. взять первую колонку через авк. для каждого посчитать число вхождений. Все равно не вписывается.
+
+5.2 
+awk '{print $1}' < /home/puser/task5/task5.log | sort | uniq -c | head -n 1
+
+
+
+Так что пока 5.3 
+b) Скрипт на bash, который бы вывел top-10 ip, на которые было отдано больше всего трафика ($body_bytes_sent в логе). 
+Сортировать по убыванию трафика.
+task53_multi.sh
+
+cat task5/task5.log | sort
+
+Логика. Выбираем первые символы до пробела из каждой строки.
+Выбираем из них уникальные. Потом по каждой строке идем через сепаратор, собираем 2д массив и плюсуем. 
+Выгружаем в файл и делаем сортировку. 
+Грустно без 2д массива
+
+task53_multi.sh v1
+
+#!/bin/bash
+# split
+tdir="/home/puser/task5"
+tfile="$tdir/task5.log"
+
+IP2="$(cat "$tfile" | awk '{print $1}' | sort -u)"
+for unicIP in ${IP2[@]}; do
+  bitecount=0
+#  grep -i "$unicIP"  "$tfile"
+# tmcbyte1="$(grep -i "$unicIP"  "$tfile" | awk '{print $10}')"
+# tmcbyte2="$(grep -i "1.2.95.123"  "$tfile" | awk '{print $10}')"
+# echo "$tmcbyte2"
+# read -p "Press any key to resume ..."
+for unicbyte in ${tmcbyte1[@]}; do
+bitecount=$(($bitecount+$unicbyte))
+done
+
+  echo "$unicIP"
+  echo "$bitecount"
+done
+
+
+task53_multi.sh v2
+#!/bin/bash
+# split
+tdir="/home/puser/task5"
+tfile="$tdir/task5.log"
+tfileout1="$tdir/task5out1.log"
+
+IP2="$(cat "$tfile" | awk '{print $1}' | sort -u)"
+for unicIP in ${IP2[@]}; do
+  bitecount=0
+  tmcbyte1="$(grep -i "$unicIP"  "$tfile" | awk '{print $10}')"
+  for unicbyte in ${tmcbyte1[@]}; do
+    bitecount=$(($bitecount+$unicbyte))
+  done
+
+  echo "$unicIP";"$bitecount" >>tfileout1
+done
+sort -t ";" -nk2 -r $tfileout1  | head -10 
