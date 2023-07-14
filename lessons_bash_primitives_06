@@ -1,0 +1,41 @@
+checker61 $full_path2file
+
+
+***********************
+#!/bin/bash
+# task61_urlchecker.sh
+tdir="/home/puser/task6/"
+full_path2file="$tdir$1"
+# получили путь из строки и файла
+echo "Part 1"
+echo "fulllath= " "$full_path2file"
+url_list="$(cat $full_path2file)"
+for single_url in ${url_list[@]}; do
+  code_r="$(curl $single_url --head  --silent| awk '/^HTTP/{print $2}')"
+  echo "$single_url" "http answer =" "$code_r"
+done
+echo  "Part 2"
+function checker61() {
+f_path2url=$1
+echo "fulllath from function = " "$f_path2url"
+f_url_list="$(cat $f_path2url)"
+for f_single_url in ${f_url_list[@]}; do
+  echo "Source function" "$f_single_url"
+  f_code_r="$(curl $f_single_url --head  --silent| awk '/^HTTP/{print $2}')"
+  echo "$f_single_url" "http answer in function  = " "$f_code_r"
+  # res
+  # return "check 61 done"
+  f_index=${f_code_r:0:1}
+  if  [[ $f_index = "4" || $f_index = "5"  ]]; then
+     echo "index get " "$f_index "
+    break
+  fi
+
+done
+}
+echo "Part 3"
+
+echo "fulllath3= " "$full_path2file"
+
+checker61 $full_path2file
+
